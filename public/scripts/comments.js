@@ -1,4 +1,6 @@
 
+
+// Comment box component, this will contain the comment list and the comment form
 var CommentBox = React.createClass({
 	loadCommentsFromServer: function() {
 		$.ajax({
@@ -33,6 +35,30 @@ var CommentBox = React.createClass({
 		    }.bind(this)
     	});
 	},
+
+	// Question: Is this function in the good place? Shouldn't we move to the CommentList component?
+
+	handleCommentDelete: function(commentId) {
+		$.ajax({
+
+			// Note: Probably not the best way to have this visible URL for delete. :)
+
+			url: this.props.urlForOne + "/" + commentId,
+			dataType: 'json',
+			type: 'DELETE',
+			cache: false,
+			success: function(data) {
+				this.setState({data: data});
+			}.bind(this),
+
+			// Question: What happens if the delete was not successful? What binding do we do?
+
+			error: function(xhr, status, err) {
+				console.log("Something went wrong!");
+				console.error(this.props.urlForOne + "/" + commentId, status, err.toString());
+			}.bind(this)
+		});
+	},
 	getInitialState: function() {
 		return {data: []};
 	},
@@ -47,7 +73,7 @@ var CommentBox = React.createClass({
 		return (
 			<div className="commentBox">
         		<h1>Comments</h1>
-        		<CommentList data={this.state.data} />
+        		<CommentList data={this.state.data} onCommentDelete={this.handleCommentDelete} />
         		<CommentForm onCommentSubmit={this.handleCommentSubmit} />
       		</div>
 		);
@@ -56,9 +82,16 @@ var CommentBox = React.createClass({
 
 var CommentList = React.createClass({
 	render: function() {
+
+		// Question: Saving the function before the map function is a good idea?
+
+		var onCommentDeleteCallback = this.props.onCommentDelete;
 		var commentNodes = this.props.data.map(function(comment) {
 			return (
-				<Comment author={comment.author} key={comment.id}>
+				<Comment _id={comment._id} 
+						 author={comment.author} 
+						 key={comment.id} 
+						 onCommentDelete={onCommentDeleteCallback}>
 					{comment.text}
 				</Comment>
 			);
@@ -72,9 +105,6 @@ var CommentList = React.createClass({
 });
 
 var CommentForm = React.createClass({
-	getInitialState: function() {
-		return {author: '', text: ''};
-	},
 	handleAuthorChange: function(e) {
 		this.setState({author: e.target.value});
 	},
@@ -90,6 +120,9 @@ var CommentForm = React.createClass({
 		}
 		this.props.onCommentSubmit({author: author, text: text});
 		this.setState({author: '', text: ''})
+	},
+	getInitialState: function() {
+		return {author: '', text: ''};
 	},
 	render: function() {
 		return (
@@ -113,6 +146,12 @@ var CommentForm = React.createClass({
 });
 
 var Comment = React.createClass({
+
+	// Question: Is it good that the _id is in the memory?
+
+	handleDelete: function() {
+		this.props.onCommentDelete(this.props._id);
+	},
 	rawMarkup: function() {
 		var md = new Remarkable();
 		var rawMarkup = md.render(this.props.children.toString());
@@ -124,16 +163,24 @@ var Comment = React.createClass({
 		var md = new Remarkable();
 		return (
 			<div className="comment">
-				<h2 className="commentAuthor">
-					{this.props.author}
-				</h2>
-				<span dangerouslySetInnerHTML={this.rawMarkup()} />
+				<div>
+					<h2 className="commentAuthor">
+						{this.props.author}
+					</h2>
+					<span dangerouslySetInnerHTML={this.rawMarkup()} />
+				</div>
+				<div>
+					<button onClick={this.handleDelete}>Delete</button>
+				</div>
 			</div>
 		);
 	}
 });
 
 ReactDOM.render(
-	<CommentBox url="/api/comments/" pollInterval={2000} />,
+
+	// Question: How can we pass the different urls in a more simple way?
+
+	<CommentBox url="/api/comments/" urlForOne="/api/comment" pollInterval={2000} />,
 	document.getElementById('content')
 );
