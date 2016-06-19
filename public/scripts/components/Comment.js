@@ -8,10 +8,16 @@ import React from "react";
 var Comment = React.createClass({
 
 	// Question: Is it good that the _id is in the memory?
+	// Answear: Yes it is good.
 
 	handleDelete: function() {
 		this.props.onCommentDelete(this.props._id);
 	},
+
+	handleLike: function() {
+		this.props.onCommentLike(this.props._id);
+	},
+
 	rawMarkup: function() {
 		var md = new Remarkable();
 		var rawMarkup = md.render(this.props.children.toString());
@@ -19,6 +25,7 @@ var Comment = React.createClass({
 			__html: rawMarkup
 		};
 	},
+
 	render: function() {
 		var md = new Remarkable();
 		return (
@@ -31,6 +38,7 @@ var Comment = React.createClass({
 				</div>
 				<div>
 					<button onClick={this.handleDelete}>Delete</button>
+					<button onClick={this.handleLike}>Like {this.props.likeCount}</button>
 				</div>
 			</div>
 		);

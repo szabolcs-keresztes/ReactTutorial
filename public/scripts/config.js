@@ -1,12 +1,12 @@
 
 // config.js
 
-var config = {
+var Config = {
 	endpoints: {
 		comment: "/api/comment",
 		comments: "/api/comments/"
 	},
-	pollInterval: 2000
+	pollInterval: 10000
 };
 
-export default config;
+export default Config;

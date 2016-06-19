@@ -6,7 +6,8 @@ var Schema = mongoose.Schema;
 var CommentSchema = new Schema({
 	id: Number,
 	author: String,
-	text: String
+	text: String,
+	likeCount: Number
 });
 
 module.exports = mongoose.model('Comment', CommentSchema);

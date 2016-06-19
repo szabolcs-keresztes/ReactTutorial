@@ -9,19 +9,19 @@ import CommentForm from "./CommentForm";
 // commentBox.js
 
 // Comment box component, this will contain the comment list and the comment form
-
 var CommentBox = React.createClass({
 	loadCommentsFromServer: function() {
 		$.ajax({
 			url: Config.endpoints.comments,
 			dataType: 'json',
 			cache: false,
-			success: function(data) {
+
+			success: (data) => {
 				this.setState({data: data});
-			}.bind(this),
-			error: function(xhr, status, err) {
-				console.error(this.props.url, status, err.toString());
-			}.bind(this)
+			},
+
+			error: (xhr, status, err) => {
+			}
 		});
 	},
 	handleCommentSubmit: function(comment) {
@@ -35,39 +35,71 @@ var CommentBox = React.createClass({
 		    dataType: 'json',
 		    type: 'POST',
 		    data: comment,
-		    success: function(data) {
+
+		    success: (data) => {
 		        this.setState({data: data});
-		    }.bind(this),
-		    error: function(xhr, status, err) {
+		    },
+
+		    error: (xhr, status, err) => {
 		    	this.setState({data: comments});
-		    	console.error(this.props.url, status, err.toString());
-		    }.bind(this)
+		    }
     	});
 	},
 
 	// Question: Is this function in the good place? Shouldn't we move to the CommentList component?
+	// Answear: Yes, this is the class which controls the Comment components.
 
 	handleCommentDelete: function(commentId) {
 		$.ajax({
 
 			// Note: Probably not the best way to have this visible URL for delete. :)
 
-			url: Config.enpoints.comment + "/" + commentId,
+			url: Config.endpoints.comment + "/" + commentId,
 			dataType: 'json',
 			type: 'DELETE',
 			cache: false,
-			success: function(data) {
+
+			success: (data) => {
 				this.setState({data: data});
-			}.bind(this),
+			},
 
 			// Question: What happens if the delete was not successful? What binding do we do?
+			// Answear: The bind function is called because we don't want to override 
+			//			the 'this' keyword.
+			//			We don't really implement what will happen with the data on error.
 
-			error: function(xhr, status, err) {
-				console.log("Something went wrong!");
-				console.error(this.props.urlForOne + "/" + commentId, status, err.toString());
-			}.bind(this)
+			error: (xhr, status, err) => {
+			}
 		});
 	},
+
+	handleCommentLike: function(commentId) {
+
+
+		$.ajax({
+
+			url: Config.endpoints.comment + "/" + commentId + "/like",
+			type: 'PUT',
+
+			success: () => {
+				var newData = Object.assign([], this.state.data);
+				
+
+				var comment = newData.filter((comment) => {
+					return comment._id == commentId;
+				})[0];
+
+				comment.likeCount++;
+
+				this.setState({data: newData});
+			},
+
+			error: (xhr, status, err) => {
+			}
+
+		});
+	},
+
 	getInitialState: function() {
 		return {data: []};
 	},
@@ -75,14 +107,16 @@ var CommentBox = React.createClass({
 		this.loadCommentsFromServer();
 		setInterval(
 			this.loadCommentsFromServer,
-			this.props.pollInterval
+			Config.pollInterval
 		);
 	},
 	render: function() {
 		return (
 			<div className="commentBox">
         		<h1>Comments</h1>
-        		<CommentList data={this.state.data} onCommentDelete={this.handleCommentDelete} />
+        		<CommentList data={this.state.data} 
+        					 onCommentDelete={this.handleCommentDelete}
+        					 onCommentLike={this.handleCommentLike} />
         		<CommentForm onCommentSubmit={this.handleCommentSubmit} />
       		</div>
 		);

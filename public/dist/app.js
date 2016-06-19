@@ -20392,24 +20392,27 @@
 	// commentBox.js
 
 	// Comment box component, this will contain the comment list and the comment form
-
 	var CommentBox = _react2.default.createClass({
 		displayName: "CommentBox",
 
 		loadCommentsFromServer: function loadCommentsFromServer() {
+			var _this = this;
+
 			$.ajax({
 				url: _config2.default.endpoints.comments,
 				dataType: 'json',
 				cache: false,
-				success: function (data) {
-					this.setState({ data: data });
-				}.bind(this),
-				error: function (xhr, status, err) {
-					console.error(this.props.url, status, err.toString());
-				}.bind(this)
+
+				success: function success(data) {
+					_this.setState({ data: data });
+				},
+
+				error: function error(xhr, status, err) {}
 			});
 		},
 		handleCommentSubmit: function handleCommentSubmit(comment) {
+			var _this2 = this;
+
 			var comments = this.state.data;
 			comment.id = Date.now();
 			var newComments = comments.concat([comment]);
@@ -20420,45 +20423,76 @@
 				dataType: 'json',
 				type: 'POST',
 				data: comment,
-				success: function (data) {
-					this.setState({ data: data });
-				}.bind(this),
-				error: function (xhr, status, err) {
-					this.setState({ data: comments });
-					console.error(this.props.url, status, err.toString());
-				}.bind(this)
+
+				success: function success(data) {
+					_this2.setState({ data: data });
+				},
+
+				error: function error(xhr, status, err) {
+					_this2.setState({ data: comments });
+				}
 			});
 		},
 
 		// Question: Is this function in the good place? Shouldn't we move to the CommentList component?
+		// Answear: Yes, this is the class which controls the Comment components.
 
 		handleCommentDelete: function handleCommentDelete(commentId) {
+			var _this3 = this;
+
 			$.ajax({
 
 				// Note: Probably not the best way to have this visible URL for delete. :)
 
-				url: _config2.default.enpoints.comment + "/" + commentId,
+				url: _config2.default.endpoints.comment + "/" + commentId,
 				dataType: 'json',
 				type: 'DELETE',
 				cache: false,
-				success: function (data) {
-					this.setState({ data: data });
-				}.bind(this),
+
+				success: function success(data) {
+					_this3.setState({ data: data });
+				},
 
 				// Question: What happens if the delete was not successful? What binding do we do?
+				// Answear: The bind function is called because we don't want to override
+				//			the 'this' keyword.
+				//			We don't really implement what will happen with the data on error.
 
-				error: function (xhr, status, err) {
-					console.log("Something went wrong!");
-					console.error(this.props.urlForOne + "/" + commentId, status, err.toString());
-				}.bind(this)
+				error: function error(xhr, status, err) {}
 			});
 		},
+
+		handleCommentLike: function handleCommentLike(commentId) {
+			var _this4 = this;
+
+			$.ajax({
+
+				url: _config2.default.endpoints.comment + "/" + commentId + "/like",
+				type: 'PUT',
+
+				success: function success() {
+					var newData = Object.assign([], _this4.state.data);
+
+					var comment = newData.filter(function (comment) {
+						return comment._id == commentId;
+					})[0];
+
+					comment.likeCount++;
+
+					_this4.setState({ data: newData });
+				},
+
+				error: function error(xhr, status, err) {}
+
+			});
+		},
+
 		getInitialState: function getInitialState() {
 			return { data: [] };
 		},
 		componentDidMount: function componentDidMount() {
 			this.loadCommentsFromServer();
-			setInterval(this.loadCommentsFromServer, this.props.pollInterval);
+			setInterval(this.loadCommentsFromServer, _config2.default.pollInterval);
 		},
 		render: function render() {
 			return _react2.default.createElement(
@@ -20469,7 +20503,9 @@
 					null,
 					"Comments"
 				),
-				_react2.default.createElement(_CommentList2.default, { data: this.state.data, onCommentDelete: this.handleCommentDelete }),
+				_react2.default.createElement(_CommentList2.default, { data: this.state.data,
+					onCommentDelete: this.handleCommentDelete,
+					onCommentLike: this.handleCommentLike }),
 				_react2.default.createElement(_CommentForm2.default, { onCommentSubmit: this.handleCommentSubmit })
 			);
 		}
@@ -20505,17 +20541,21 @@
 		displayName: "CommentList",
 
 		render: function render() {
+			var _this = this;
 
 			// Question: Saving the function before the map function is a good idea?
+			// Answear: Yes it is a good idea, however we should use the fat arrow in this case.
+			//			Functions with fat arrows will not override the 'this' keyword.
 
-			var onCommentDeleteCallback = this.props.onCommentDelete;
 			var commentNodes = this.props.data.map(function (comment) {
 				return _react2.default.createElement(
 					_Comment2.default,
 					{ _id: comment._id,
 						author: comment.author,
 						key: comment.id,
-						onCommentDelete: onCommentDeleteCallback },
+						likeCount: comment.likeCount,
+						onCommentDelete: _this.props.onCommentDelete,
+						onCommentLike: _this.props.onCommentLike },
 					comment.text
 				);
 			});
@@ -20554,10 +20594,16 @@
 
 
 		// Question: Is it good that the _id is in the memory?
+		// Answear: Yes it is good.
 
 		handleDelete: function handleDelete() {
 			this.props.onCommentDelete(this.props._id);
 		},
+
+		handleLike: function handleLike() {
+			this.props.onCommentLike(this.props._id);
+		},
+
 		rawMarkup: function rawMarkup() {
 			var md = new Remarkable();
 			var rawMarkup = md.render(this.props.children.toString());
@@ -20565,6 +20611,7 @@
 				__html: rawMarkup
 			};
 		},
+
 		render: function render() {
 			var md = new Remarkable();
 			return _react2.default.createElement(
@@ -20587,6 +20634,12 @@
 						"button",
 						{ onClick: this.handleDelete },
 						"Delete"
+					),
+					_react2.default.createElement(
+						"button",
+						{ onClick: this.handleLike },
+						"Like ",
+						this.props.likeCount
 					)
 				)
 			);
@@ -20672,15 +20725,15 @@
 
 	// config.js
 
-	var config = {
+	var Config = {
 		endpoints: {
 			comment: "/api/comment",
 			comments: "/api/comments/"
 		},
-		pollInterval: 2000
+		pollInterval: 10000
 	};
 
-	exports.default = config;
+	exports.default = Config;
 
 /***/ }
 /******/ ]);

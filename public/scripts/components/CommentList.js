@@ -10,14 +10,17 @@ var CommentList = React.createClass({
 	render: function() {
 
 		// Question: Saving the function before the map function is a good idea?
+		// Answear: Yes it is a good idea, however we should use the fat arrow in this case.
+		//			Functions with fat arrows will not override the 'this' keyword.
 
-		var onCommentDeleteCallback = this.props.onCommentDelete;
-		var commentNodes = this.props.data.map(function(comment) {
+		var commentNodes = this.props.data.map((comment) => {
 			return (
 				<Comment _id={comment._id} 
 						 author={comment.author} 
 						 key={comment.id} 
-						 onCommentDelete={onCommentDeleteCallback}>
+						 likeCount={comment.likeCount}
+						 onCommentDelete={this.props.onCommentDelete}
+						 onCommentLike={this.props.onCommentLike}>
 					{comment.text}
 				</Comment>
 			);

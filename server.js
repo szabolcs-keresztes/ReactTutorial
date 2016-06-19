@@ -132,6 +132,37 @@ router.route('/comment/:comment_id')
   });
 
 
+// on routes that end with /comment/:comment_id/like
+
+router.route('/comment/:comment_id/like')
+  .put(function(req, res) {
+
+    console.log("Comment Like PUT Request, comment_id: ", req.params.comment_id);
+
+    Comment.findById(req.params.comment_id, function(err, comment) {
+      if (err) {
+        res.send(500, err);
+      }
+
+      console.log("Comment found");
+
+      if (comment.likeCount == null) {
+        comment.likeCount = 0;
+      }
+      comment.likeCount++;
+      comment.save(function(err) {
+        if (err) {
+          res.send(500, err);
+        }
+
+        console.log("Comment saved");
+
+        res.sendStatus(201);
+      });
+    });
+  });
+
+
 // REGISTER OUR ROUTES
 //all of our routes will be prefixed with /api
 app.use('/api', router);
